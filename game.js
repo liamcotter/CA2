@@ -1,5 +1,4 @@
 /* 
-- put draw() into multiple functions
 - make game
 */
 
@@ -8,7 +7,8 @@ let context;
 let request_id;
 
 let fps = 30;
-let fpsInterval = 1000 / fps; // the denominator is frames-per-second
+let fpsInterval = 1000 / fps; // the denominator is frames-per-second, milliseconds
+let tperFrame = 1/fps; // seconds
 let now;
 let then = Date.now();
 
@@ -18,12 +18,14 @@ let moveRight = false;
 let moveFor = false;
 let moveBack = false;
 
-let centerX = 200;
-let centerY = 200;
+let cameraY = 0; // only vertical change in view
+// offset to draw the objects by.
+let centreLocY; // without this, everything will be based off of the top of the canvas (y = 0);
+// this puts it half way
 
 // Pinning units on real-world quantities make changes to the physics easier
 let DRAG = 1; // drag constant
-let RES = 100; // 12.8;
+let RES = 100; // friction with ground;
 let AXLE_LENGTH = 20; // determines turning radius
 // https://asawicki.info/Mirror/Car%20Physics%20for%20Games/Car%20Physics%20for%20Games.html
 
@@ -45,29 +47,30 @@ let Car = {
     },
     size: { x: 10, y: 20 },
 }
+
+let enemy = 0; // enemy is a line for now
 let prev_vel = { x: 0, y: 0 };
 let static_objects = [];
 
-let b = {
-    xPos: 500,
-    yPos: 310,
-    rot: -15 * Math.PI / 180,
-    xSize: 30,
-    ySize: 70,
-};
-b = addCoordInfo(b);
-
-static_objects.push(b);
-
 document.addEventListener("DOMContentLoaded", init, false);
-
 
 function init() {
     canvas = document.querySelector("canvas");
     context = canvas.getContext("2d");
     window.addEventListener("keydown", activate, false);
     window.addEventListener("keyup", deactivate, false);
-
+    centreLocY = canvas.height/2;
+    for (let i = 0; i < 100; i++) {
+        let b = {
+            xPos: randint(canvas.width/4, 3*canvas.width/4),
+            yPos: randint(-1000, 1000),
+            rot: randint(0, 360) * Math.PI / 180,
+            xSize: randint(10, 60),
+            ySize: randint(10, 30),
+        };
+        b = addCoordInfo(b);
+        static_objects.push(b);
+    }
     draw();
 }
 
@@ -85,25 +88,26 @@ function draw() {
     drive();
     collide();
     position_drawCar();
+    draw_objects();
 }
-    /* text
-    let angle = Math.atan2(Car.v.y, Car.v.x);
-    let backwards = "";
-    if (Math.abs((angle + Math.PI) - (Car.dir + (999999999999 * Math.PI)) % (2 * Math.PI)) > 0.1) {
-        backwards = "-";
-    }
+/* text
+let angle = Math.atan2(Car.v.y, Car.v.x);
+let backwards = "";
+if (Math.abs((angle + Math.PI) - (Car.dir + (999999999999 * Math.PI)) % (2 * Math.PI)) > 0.1) {
+    backwards = "-";
+}
 
-    context.fillText(backwards + vMag(Car.v) + " m/s", 10, 30);
-    context.fillText(Car.dir, 10, 150);
-    context.fillText((Car.dir + (9999 * Math.PI)) % (2 * Math.PI) + " rad", 10, 50);
-    context.fillText(angle + Math.PI + " rad", 10, 70);
-    context.fillText(Car.p.x + " x", 10, 90);
-    context.fillText(Car.p.y + " y", 10, 110);
-    //context.fillText(Car.rr.x + " x " + Car.rr.y + " y rr", 10, 130);
-    //context.fillText(Car.drag.x +  " x " + Car.drag.y + " y drag", 10, 150);
-    //context.fillText(Car.t.x + " x " + Car.t.y + " y t", 10, 170);
-    context.setTransform(1, 0, 0, 1, 0, 0);
-    */
+context.fillText(backwards + vMag(Car.v) + " m/s", 10, 30);
+context.fillText(Car.dir, 10, 150);
+context.fillText((Car.dir + (9999 * Math.PI)) % (2 * Math.PI) + " rad", 10, 50);
+context.fillText(angle + Math.PI + " rad", 10, 70);
+context.fillText(Car.p.x + " x", 10, 90);
+context.fillText(Car.p.y + " y", 10, 110);
+//context.fillText(Car.rr.x + " x " + Car.rr.y + " y rr", 10, 130);
+//context.fillText(Car.drag.x +  " x " + Car.drag.y + " y drag", 10, 150);
+//context.fillText(Car.t.x + " x " + Car.t.y + " y t", 10, 170);
+context.setTransform(1, 0, 0, 1, 0, 0);
+*/
 
 // add coords to object from the "drawing coords". x, y, xSize, ySize, rotation -> 4 corners + centre
 function addCoordInfo(b) {
@@ -203,7 +207,7 @@ function drive() {
     // so the total forward force is the sum of the three. drag and rr are already negative by their formula
     let f = vAdd(vAdd(Car.t, Car.drag), Car.rr);
     Car.a = vScale(f, 0.003) // f = ma, a = f/m, m = 333kg for example
-    Car.v = vAdd(Car.v, vScale(Car.a, 0.03333333)); //  v = v + dt * a, where dt is the smallest time interval, time of the fpsInterval (1/30 s)
+    Car.v = vAdd(Car.v, vScale(Car.a, tperFrame)); //  v = v + dt * a, where dt is the smallest time interval, time of the fpsInterval (1/30 s)
     // stop when very slow
     if (vMag(Car.v) < 1) {
         Car.v.x = 0;
@@ -218,20 +222,22 @@ function drive() {
 // collision loops
 function collide() {
     // for each other object
+    let collided = false;
     for (let obj of static_objects) {
-        context.fillStyle = "green";
         // https://youtu.be/fHOLQJo0FjQ?t=1165 adapted formulas, but using this general method for line segment intersections
         let point = collisionCheck(Car, obj);
         if (point !== false) {
-            context.fillStyle = "blue";
-            Car.v = vScale(vNeg(prev_vel), 0.3); // reverse of the latest valid velocity, but 70% momentum lost
-        } else {
+            collided = true;
+            Car.v = vScale(vNeg(prev_vel), 0.4); // reverse of the latest valid velocity, but 70% momentum lost
+            if (vMag(Car.v) < 1) {
+                Car.v = vScale(Car.v, 2.5);
+            }
+        }
+    }
+    if (collided === false) {
+        if (vMag(Car.v) > 1) {
             prev_vel = Car.v; // update latest valid velocity
         }
-        context.translate(obj.xPos, obj.yPos);
-        context.rotate(obj.rot);
-        context.fillRect(0, 0, obj.xSize, obj.ySize);
-        context.setTransform(1, 0, 0, 1, 0, 0);
     }
 }
 
@@ -317,14 +323,26 @@ function intersectingLineSegment(p1, p2, q1, q2) {
 }
 
 function position_drawCar() {
-    Car.p = vAdd(Car.p, vScale(Car.v, 0.03333333)); // p = p + dt * v, integrating again to go from accel -> velocity -> displacement
+    Car.p = vAdd(Car.p, vScale(Car.v, tperFrame)); // p = p + dt * v, integrating again to go from accel -> velocity -> displacement
+    cameraY = Car.p.y;
     carAddCoordInfo();
     context.fillStyle = "red";
-    context.translate(Car.p.x, Car.p.y) // center canvas on car
+    context.translate(Car.p.x, centreLocY); // center canvas on car
     context.rotate(Car.dir); // rotate car
     context.fillRect(0, 0, Car.size.y, Car.size.x); // draw car. It's from 0,0 so only the shape is rotated and the coordinates are not.
     context.setTransform(1, 0, 0, 1, 0, 0);
 }
+
+function draw_objects() {
+    for (let obj of static_objects) {
+        context.fillStyle = "green";
+        context.translate(obj.xPos, obj.yPos - cameraY + centreLocY);
+        context.rotate(obj.rot);
+        context.fillRect(0, 0, obj.xSize, obj.ySize);
+        context.setTransform(1, 0, 0, 1, 0, 0);
+    }
+}
+
 // vector math functions, for cleaner code
 function vAdd(v1, v2) {
     return {
@@ -394,4 +412,8 @@ function deactivate(event) {
     } else if (key === "ArrowDown") {
         moveBack = false;
     }
+}
+
+function randint(min, max) {
+    return Math.round(Math.random() * (max - min)) + min;
 }
