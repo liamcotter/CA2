@@ -34,7 +34,7 @@ let Car = {
     v: { x: 0, y: 0 }, // velocities
     engine: 100000, //EngineForce, power
     t: { x: 0, y: 0 }, // traction
-    dir: 20 * Math.PI / 180, // direction in radians
+    dir: 315 * Math.PI / 180, // direction in radians
     turnDir: 0, // direction of "steering", usually a small enough angle bewteen -30 and + 30
     drag: { x: 0, y: 0 }, // drag of the car, dependant on DRAG and velocity
     rr: { x: 0, y: 0 }, // ground friction, dependant on RES and velocity (rr = rolling resistance)
@@ -48,7 +48,8 @@ let Car = {
     size: { x: 10, y: 20 },
 }
 
-let enemy = 0; // enemy is a line for now
+let density = 20; // number of objects per 1000 pixels
+let enemy; // enemy is a line for now, y value
 let prev_vel = { x: 0, y: 0 };
 let static_objects = [];
 
@@ -60,10 +61,11 @@ function init() {
     window.addEventListener("keydown", activate, false);
     window.addEventListener("keyup", deactivate, false);
     centreLocY = canvas.height/2;
-    for (let i = 0; i < 100; i++) {
+    enemy = canvas.height;
+    for (let i = 0; i < density; i++) {
         let b = {
             xPos: randint(canvas.width/4, 3*canvas.width/4),
-            yPos: randint(-1000, 1000),
+            yPos: randint(-500, canvas.height),
             rot: randint(0, 360) * Math.PI / 180,
             xSize: randint(10, 60),
             ySize: randint(10, 30),
@@ -89,6 +91,8 @@ function draw() {
     collide();
     position_drawCar();
     draw_objects();
+    enemy_events();
+    add_future_objects();
 }
 /* text
 let angle = Math.atan2(Car.v.y, Car.v.x);
@@ -343,6 +347,26 @@ function draw_objects() {
     }
 }
 
+function enemy_events() {
+    context.beginPath();
+    context.moveTo(0, enemy - cameraY + centreLocY);
+    context.lineTo(1000, enemy - cameraY + centreLocY);
+    //console.log("Enemy, real loc: " + enemy);
+    //console.log("CameraY " + cameraY);
+    //console.log("Screen loc: " + (enemy - cameraY + centreLocY));
+    context.strokeStyle = "orange";
+    context.stroke();
+    if (enemy < Math.max(Car.corner.c1.y, Car.corner.c2.y, Car.corner.c3.y, Car.corner.c4.y)) {
+        stop();
+    }
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    enemy -= 5;
+}
+
+function add_future_objects() {
+
+}
+
 // vector math functions, for cleaner code
 function vAdd(v1, v2) {
     return {
@@ -416,4 +440,10 @@ function deactivate(event) {
 
 function randint(min, max) {
     return Math.round(Math.random() * (max - min)) + min;
+}
+
+function stop() {
+    window.cancelAnimationFrame(request_id);
+    window.removeEventListener("keydown", activate);
+    window.removeEventListener("keyup", deactivate);
 }
