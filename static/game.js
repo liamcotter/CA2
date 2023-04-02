@@ -1,5 +1,9 @@
 /* 
-- make game
+ make game
+ add fuel
+ scroll pos based on speed
+ background images
+ line at current PB, overall record.
 */
 
 let canvas;
@@ -30,7 +34,7 @@ let AXLE_LENGTH = 20; // determines turning radius
 // https://asawicki.info/Mirror/Car%20Physics%20for%20Games/Car%20Physics%20for%20Games.html
 
 let Car = {
-    p: { x: 200, y: 200 }, // starting pos
+    p: { x: 700, y: 0 }, // starting pos
     v: { x: 0, y: 0 }, // velocities
     engine: 100000, //EngineForce, power
     t: { x: 0, y: 0 }, // traction
@@ -48,7 +52,10 @@ let Car = {
     size: { x: 10, y: 20 },
 }
 
-let density = 20; // number of objects per 1000 pixels
+let density = 50; // number of objects per 1000 pixels
+let minY;
+let maxY;
+let score = 0;
 let enemy; // enemy is a line for now, y value
 let prev_vel = { x: 0, y: 0 };
 let static_objects = [];
@@ -62,10 +69,12 @@ function init() {
     window.addEventListener("keyup", deactivate, false);
     centreLocY = canvas.height/2;
     enemy = canvas.height;
-    for (let i = 0; i < density; i++) {
+    minY = -1000;
+    maxY = enemy + canvas.height;
+    for (let i = 0; i < density*1.6; i++) {
         let b = {
             xPos: randint(canvas.width/4, 3*canvas.width/4),
-            yPos: randint(-500, canvas.height),
+            yPos: randint(-1000, canvas.height),
             rot: randint(0, 360) * Math.PI / 180,
             xSize: randint(10, 60),
             ySize: randint(10, 30),
@@ -93,6 +102,11 @@ function draw() {
     draw_objects();
     enemy_events();
     add_future_objects();
+    delete_objects();
+    context.fillRect(canvas.width/4, 0, 1, canvas.height);
+    context.fillRect(3*canvas.width/4, 0, 1, canvas.height);
+    score = Math.max(score, -Car.p.y);
+    context.fillText("Score: " + Math.round(score), 10, 30);
 }
 /* text
 let angle = Math.atan2(Car.v.y, Car.v.x);
@@ -238,6 +252,17 @@ function collide() {
             }
         }
     }
+    // left border
+    if ( Car.p.x < canvas.width/4) {
+        Car.v.x = 0;
+        Car.p.x = canvas.width/4;
+    }
+    // right border
+    if (Car.p.x > 3*canvas.width/4) {
+        Car.v.x = 0;
+        Car.p.x = 3*canvas.width/4;
+    }
+
     if (collided === false) {
         if (vMag(Car.v) > 1) {
             prev_vel = Car.v; // update latest valid velocity
@@ -360,11 +385,29 @@ function enemy_events() {
         stop();
     }
     context.setTransform(1, 0, 0, 1, 0, 0);
-    enemy -= 5;
+    maxY = enemy + canvas.height/2; // lowest point visible is the point one canvas.height below the enemy (when enemy at top)
+    enemy -= 8;
 }
 
 function add_future_objects() {
+    if (Car.p.y < minY + 500) {
+        for (let k = 0; k < density; k++) {
+            let b = {
+                xPos: randint(canvas.width/4, 3*canvas.width/4),
+                yPos: randint(minY - 1000, minY),
+                rot: randint(0, 360) * Math.PI / 180,
+                xSize: randint(10, 60),
+                ySize: randint(10, 30),
+            };
+            b = addCoordInfo(b);
+            static_objects.push(b);
+        }
+        minY = minY - 1000;
+    }
+}
 
+function delete_objects() {
+    static_objects = static_objects.filter(item => item.yPos < maxY);
 }
 
 // vector math functions, for cleaner code
@@ -443,6 +486,16 @@ function randint(min, max) {
 }
 
 function stop() {
+    // game over screen
+    context.fillStyle = "black";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "white";
+    context.font = "30px Arial";
+    context.fillText("Game Over", canvas.width/2 - 100, canvas.height/2);
+    context.font = "20px Arial";
+    let scoreString = "Score: " + score;
+    context.fillText(scoreString, canvas.width/2 - 100, canvas.height/2 + 50);
+
     window.cancelAnimationFrame(request_id);
     window.removeEventListener("keydown", activate);
     window.removeEventListener("keyup", deactivate);

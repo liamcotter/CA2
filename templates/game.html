@@ -3,8 +3,8 @@
 	<head>
 		<meta charset="utf-8"/>
 		<title>Greetings!</title>
-		<link rel="stylesheet" href="style.css">
-		<script src="game.js" type="module"></script>
+		<link rel="stylesheet" href="{{ url_for('static', filename='style.css')}}">
+		<script src="{{ url_for('static', filename='game.js')}}" type="module"></script>
 	</head>
 	<body>
 		<canvas width="1518" height="660">
