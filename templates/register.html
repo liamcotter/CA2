@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<form method="POST" action="" novalidate>
+    {{ form.hidden_tag() }}
+    {{ form.username.label }}
+	{{ form.username(minlength=4, maxlength=20) }}
+	{% for error in form.username.errors %}
+		<p>{{ error }}</p>
+	{% endfor %}
+    {{ form.password.label }}
+	{{ form.password(minlength=6, maxlength=30) }}
+	{% for error in form.password.errors %}
+		<p>{{ error }}</p>
+	{% endfor %}
+    {{ form.password2.label }}
+	{{ form.password2(minlength=6, maxlength=30) }}
+	{% for error in form.password2.errors %}
+		<p>{{ error }}</p>
+	{% endfor %}
+    {{ form.submit() }}
+
+</form>
+{% endblock %}
