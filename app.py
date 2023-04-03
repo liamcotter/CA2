@@ -2,6 +2,8 @@
 Add in organised login/register/landing page structure
 add leaderboard DB
 set up DB
+
+app pw must not show
 """
 
 
@@ -11,7 +13,13 @@ from database import get_db, close_db
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from forms import RegistrationForm, LoginForm
-
+import re
+import smtplib, ssl
+from random import choice
+from string import ascii_letters, digits    
+from pw import pw
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "Octane Odyssey".encode('utf8')
@@ -21,6 +29,92 @@ app.teardown_appcontext(close_db)
 Session(app)
 
 title = "Octane Odyssey"
+
+
+def verify(email : str, link : str) -> bool:
+    try:
+        link = f"http://127.0.0.1:5000/verification/{link}"
+        port = 465  # For SSL
+        password = pw
+        sender_email = "noreply.webdevlyc1@gmail.com"
+        receiver_email = email
+        message = MIMEMultipart("alternative")
+        message["Subject"] = "Email Verification"
+        message["From"] = sender_email
+        message["To"] = receiver_email
+        txt = f"""\
+        Please follow this link to verify your email address:
+        {link}
+        """
+        html = f"""\
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Email Verification</title>
+            <style>
+            * {{
+            margin-left: 0;
+            margin-right: 0;
+            }}
+            div, body {{
+                font-family: Arial, sans-serif;
+                font-size: 16px;
+                color: #333;
+                margin: 0 auto;
+                background: #ffa200;
+            }}
+            p, a{{
+                text-align: center;
+            }}
+            p {{
+                margin-bottom: 20px;
+            }}
+            a {{
+                display: inline-block;
+                padding: 10px 20px;
+                background-color: #4CAF50;
+                color: #fff;
+                text-decoration: none;
+                border-radius: 4px;
+            }}
+            figure {{
+                text-align: center;
+                background: black;
+            }}
+            a:hover {{
+                background-color: #3E8E41;
+            }}
+            #end {{
+            padding-bottom: 40px;
+            }}
+            </style>
+        </head>
+        <body>
+            <div>
+                <figure>
+                    <img src="https://cs1.ucc.ie/~lyc1/cgi-bin/ca2/static/email_logo.png" height="300" alt="Octane Odyssey logo">
+                </figure>
+                <p>Please follow this link to verify your email address:</p>
+                <p id="end"><a href="{link}">Verify</a><p>
+            </div>
+        </body>
+        </html>
+
+        """
+        part1 = MIMEText(txt, "plain")
+        part2 = MIMEText(html, "html")
+        message.attach(part1)
+        message.attach(part2)
+        # Create a secure SSL context
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
+            server.login(sender_email, password)
+            server.sendmail(sender_email, receiver_email, message.as_string())
+        return True
+    except:
+        return False
+
+
 
 # decorators
 @app.before_request
@@ -51,6 +145,23 @@ def no_log_in():
     else:
         return render_template("landing_page.html")
 
+@app.route("/home")
+@login_required
+def home():
+    return render_template("home.html")
+
+@app.route("/verification/<token>")
+def verification(token):
+    db = get_db()
+    valid = db.execute("""SELECT username FROM verify WHERE token = ?;""", (token,)).fetchone()
+    if valid is not None:
+        db.execute("""UPDATE users SET verified = 1 WHERE username = ?;""", (valid["username"],))
+        db.execute("""DELETE FROM verify WHERE token = ?;""", (token,))
+        db.commit()
+        return redirect(url_for('login'))
+    else:
+        return abort(404)
+
 # general routes
 
 @app.route("/login", methods=["GET","POST"])
@@ -64,17 +175,19 @@ def login():
 									username = ?;""", (username,) ).fetchone()
         if possible_clashing_user is None or not check_password_hash(possible_clashing_user['password'], password):
             form.password.errors.append("Incorrect username or password")
+        elif possible_clashing_user["verified"] == 0:
+            form.username.errors.append("Please verify your email address")
         else:
             session.clear()
             session["username"] = username
-            return redirect(url_for('/home'))
+            return redirect(url_for('home'))
     return render_template("login.html", form=form)
 
 @app.route("/logout")
 @login_required
 def logout():
 	session.clear()
-	return redirect(url_for('home'))
+	return redirect(url_for('/'))
 
 @app.route("/register", methods=["GET","POST"])
 def register():
@@ -82,20 +195,34 @@ def register():
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
+        email = form.email.data
+        if "+" in email: # no workaround with gmail to use multiple email addresses that point to one inbox. However, I will not check for duplicate emails as I don't want to store them.
+            email = email.replace("@", "+@")
+            email = email.split("+")[0] + email.split("+")[-1]
+        valid = re.match(r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email)
         db = get_db()
         clashing_user = db.execute("""SELECT * FROM users WHERE username = ?;""", (username,) ).fetchone()
         if clashing_user:
             form.username.errors.append("Username is taken.")
+        elif not valid:
+            form.email.errors.append("Invalid email address")
         else:
-            db.execute("""INSERT INTO users (username, password) VALUES (?, ?);""", (username, generate_password_hash(password)))
+            db.execute("""INSERT INTO users (username, password, verified) VALUES (?, ?, ?);""", (username, generate_password_hash(password), 0))
             db.commit()
-            return redirect(url_for('login'))
-    return render_template("register.html", form=form, title=title)
+            token = ''.join(choice(ascii_letters + digits) for i in range(30)).lower()
+            email_sent = verify(email, token)
+            db.execute("""INSERT INTO verify (username, token) VALUES (?, ?);""", (username, token))
+            db.commit()
+            if email_sent:
+                return render_template("verification.html")
+            else:
+                return render_template("email_fail.html")
+    return render_template("register.html", form=form)
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('404.html', title=title), 404
+    return render_template('404.html'), 404
 
 @app.errorhandler(500)
 def page_not_found(e):
-    return render_template('500.html', title=title), 500
+    return render_template('500.html'), 500

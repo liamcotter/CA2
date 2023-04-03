@@ -4,15 +4,13 @@
 <head>
     <meta charset="utf-8" />
     <title>Octane Odyssey</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
     <link rel="icon" href="{{ url_for('static',filename='favicon.ico') }}" />
 </head>
 
 <body>
-    <main>
         {% block main_content %}
         {% endblock %}
-    </main>
     <footer>
         <small>&copy; Web Dev 2, Octane Odyssey</small>
     </footer>
