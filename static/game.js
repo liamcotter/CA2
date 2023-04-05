@@ -3,12 +3,14 @@
  add fuel
  scroll pos based on speed
  background images
+ game in background of menu
  line at current PB, overall record.
 */
 
 let canvas;
 let context;
 let request_id;
+let xhttp;
 
 let fps = 30;
 let fpsInterval = 1000 / fps; // the denominator is frames-per-second, milliseconds
@@ -495,8 +497,22 @@ function stop() {
     context.font = "20px Arial";
     let scoreString = "Score: " + score;
     context.fillText(scoreString, canvas.width/2 - 100, canvas.height/2 + 50);
-
     window.cancelAnimationFrame(request_id);
     window.removeEventListener("keydown", activate);
     window.removeEventListener("keyup", deactivate);
+    let data = new FormData();
+    data.append("score", score);
+    xhttp = new XMLHttpRequest();
+    xhttp.addEventListener("readystatechange", handle_response, false);
+    xhttp.open("POST", "/score", true);
+    xhttp.send(data);
+}
+
+
+function handle_response() {
+    if (xhttp.readyState === 4 && xhttp.status === 200) {
+        if (xhttp.responseText === "Success") {
+            console.log("Score was saved successfully")
+        }
+    }
 }

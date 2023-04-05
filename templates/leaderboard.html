@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<main>
+    <script src="{{ url_for('static', filename='leaderboard.js') }}"></script>
+    <table>
+        <tr>
+            <th>Rank</th>
+            <th>Username</th>
+            <th>Score</th>
+        </tr>
+        {% for player in leaderboard %}
+        <tr>
+            <td>{{ player.rank }}</td>
+            <td>{{ player.username }}</td>
+            <td>{{ player.score }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</main>
+{% endblock %}

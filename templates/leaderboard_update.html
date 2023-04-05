@@ -1,0 +1,12 @@
+<tr>
+    <th>Rank</th>
+    <th>Username</th>
+    <th>Score</th>
+</tr>
+{% for player in leaderboard %}
+<tr>
+    <td>{{ player.rank }}</td>
+    <td>{{ player.username }}</td>
+    <td>{{ player.score }}</td>
+</tr>
+{% endfor %}

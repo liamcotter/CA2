@@ -25,4 +25,3 @@ SELECT * FROM scores;
 SELECT * FROM users;
 SELECT * FROM verify;
 */
-*/

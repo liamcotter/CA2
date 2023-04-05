@@ -30,8 +30,14 @@ Session(app)
 
 title = "Octane Odyssey"
 
+class Player:
+    def __init__(self, rank, username, score):
+        self.rank = rank
+        self.username = username
+        self.score = score
 
-def verify(email : str, link : str) -> bool:
+def verify(email : str, link : str, username : str) -> bool:
+    # https://realpython.com/python-send-email/
     try:
         link = f"http://127.0.0.1:5000/verification/{link}"
         port = 465  # For SSL
@@ -94,6 +100,7 @@ def verify(email : str, link : str) -> bool:
                 <figure>
                     <img src="https://cs1.ucc.ie/~lyc1/cgi-bin/ca2/static/email_logo.png" height="300" alt="Octane Odyssey logo">
                 </figure>
+                <p>Hello {username},</p>
                 <p>Please follow this link to verify your email address:</p>
                 <p id="end"><a href="{link}">Verify</a><p>
             </div>
@@ -150,6 +157,12 @@ def no_log_in():
 def home():
     return render_template("home.html")
 
+
+@app.route("/game")
+@login_required
+def game():
+    return render_template("game.html")
+
 @app.route("/verification/<token>")
 def verification(token):
     db = get_db()
@@ -162,6 +175,35 @@ def verification(token):
     else:
         return abort(404)
 
+@app.route("/score", methods=["GET","POST"])
+def score():
+    score = float(request.form.get("score")) # safer
+    score = int(round(score, 0))
+    username = g.user
+    db = get_db()
+    db.execute("""INSERT INTO scores (username, score) VALUES (?, ?);""", (username, score))
+    db.commit()
+    return "Success"
+
+@app.route("/leaderboard")
+def leaderboards():
+    db = get_db()
+    leaderboard = []
+    scores = db.execute("""SELECT username, score FROM scores ORDER BY score DESC LIMIT 10;""").fetchall()
+    for rank, data in enumerate(scores):
+        player = Player(rank+1, data["username"], data["score"])
+        leaderboard.append(player)
+    return render_template("leaderboard.html", leaderboard=leaderboard)
+
+@app.route("/leaderboard_update")
+def leaderboard_update():
+    db = get_db()
+    leaderboard = []
+    scores = db.execute("""SELECT username, score FROM scores ORDER BY score DESC LIMIT 10;""").fetchall()
+    for rank, data in enumerate(scores):
+        player = Player(rank+1, data["username"], data["score"])
+        leaderboard.append(player)
+    return render_template("leaderboard_update.html", leaderboard=leaderboard)
 # general routes
 
 @app.route("/login", methods=["GET","POST"])
@@ -210,7 +252,7 @@ def register():
             db.execute("""INSERT INTO users (username, password, verified) VALUES (?, ?, ?);""", (username, generate_password_hash(password), 0))
             db.commit()
             token = ''.join(choice(ascii_letters + digits) for i in range(30)).lower()
-            email_sent = verify(email, token)
+            email_sent = verify(email, token, username)
             db.execute("""INSERT INTO verify (username, token) VALUES (?, ?);""", (username, token))
             db.commit()
             if email_sent:
