@@ -50,7 +50,7 @@ def verify(email : str, link : str, username : str) -> bool:
         message["To"] = receiver_email
         txt = f"""\
         Please follow this link to verify your email address:
-        {link}
+        {link}  
         """
         html = f"""\
         <html>
@@ -229,7 +229,7 @@ def login():
 @login_required
 def logout():
 	session.clear()
-	return redirect(url_for('/'))
+	return redirect(url_for('no_log_in'))
 
 @app.route("/register", methods=["GET","POST"])
 def register():

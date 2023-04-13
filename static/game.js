@@ -1,7 +1,6 @@
 /* 
  make game
- add fuel
- scroll pos based on speed
+ invisibilty
  background images
  game in background of menu
  line at current PB, overall record.
@@ -14,11 +13,14 @@ let xhttp;
 
 let fps = 30;
 let fpsInterval = 1000 / fps; // the denominator is frames-per-second, milliseconds
-let tperFrame = 1/fps; // seconds
+let tperFrame = 1 / fps; // seconds
 let now;
 let then = Date.now();
 
-
+let carHeight = 470;
+let carWidth = 226;
+let s_X = 20;
+let s_Y = s_X * (carHeight / carWidth);
 let moveLeft = false;
 let moveRight = false;
 let moveFor = false;
@@ -51,17 +53,25 @@ let Car = {
         c3: { x: 0, y: 0 },
         c4: { x: 0, y: 0 }
     },
-    size: { x: 10, y: 20 },
+    size: { x: s_X, y: s_Y },
 }
 
-let density = 50; // number of objects per 1000 pixels
+let carImage = new Image();
+let drone_body = new Image();
+let drone_prop = new Image();
+let invisLogo = new Image();
+let prop_dir = 0;
+let density = 20; // number of objects per 1000 pixels
 let minY;
 let maxY;
 let score = 0;
 let enemy; // enemy is a line for now, y value
 let prev_vel = { x: 0, y: 0 };
 let static_objects = [];
-
+let powerups = [];
+let powerupTypes = ["invisible"];
+let invisibleFrameTimer;
+let invisible;
 document.addEventListener("DOMContentLoaded", init, false);
 
 function init() {
@@ -69,22 +79,27 @@ function init() {
     context = canvas.getContext("2d");
     window.addEventListener("keydown", activate, false);
     window.addEventListener("keyup", deactivate, false);
-    centreLocY = canvas.height/2;
+    centreLocY = canvas.height / 2;
     enemy = canvas.height;
     minY = -1000;
     maxY = enemy + canvas.height;
-    for (let i = 0; i < density*1.6; i++) {
+    for (let i = 0; i < density * 1.6; i++) {
         let b = {
-            xPos: randint(canvas.width/4, 3*canvas.width/4),
+            xPos: randint(0, canvas.width),
             yPos: randint(-1000, canvas.height),
             rot: randint(0, 360) * Math.PI / 180,
-            xSize: randint(10, 60),
+            xSize: randint(10, 100),
             ySize: randint(10, 30),
         };
         b = addCoordInfo(b);
         static_objects.push(b);
     }
-    draw();
+    load_assets([
+        { "var": carImage, "url": "static/car4(2).png" },
+        { "var": drone_body, "url": "static/drone_body.png" },
+        { "var": drone_prop, "url": "static/propellor.png" },
+        { "var": invisLogo, "url": "static/invis.png" },
+    ], draw);
 }
 
 function draw() {
@@ -97,6 +112,8 @@ function draw() {
     then = now - (elapsed % fpsInterval);
 
     context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "black";
+    context.fillRect(0, 0, canvas.width, canvas.height);
     turn();
     drive();
     collide();
@@ -105,9 +122,11 @@ function draw() {
     enemy_events();
     add_future_objects();
     delete_objects();
-    context.fillRect(canvas.width/4, 0, 1, canvas.height);
-    context.fillRect(3*canvas.width/4, 0, 1, canvas.height);
     score = Math.max(score, -Car.p.y);
+    if (invisibleFrameTimer > 0) {
+        invisibleFrameTimer--;
+    }
+    context.fillStyle = "white";
     context.fillText("Score: " + Math.round(score), 10, 30);
 }
 /* text
@@ -198,7 +217,7 @@ function turn() {
     let turn = angVel / fps; // 30 FPS so divide angVel by 30 to get radians per frame
     // turn is the angle change in radians
     Car.dir = Car.dir + turn; // new direction
-    let oldx = Car.v.x
+    let oldx = Car.v.x;
     // but also we need to change the direction of the car's velocity to point towards the new direction
     Car.v.x = (Car.v.x * Math.cos(turn)) - (Car.v.y * Math.sin(turn));
     Car.v.y = (oldx * Math.sin(turn)) + (Car.v.y * Math.cos(turn));
@@ -243,28 +262,69 @@ function drive() {
 function collide() {
     // for each other object
     let collided = false;
-    for (let obj of static_objects) {
-        // https://youtu.be/fHOLQJo0FjQ?t=1165 adapted formulas, but using this general method for line segment intersections
-        let point = collisionCheck(Car, obj);
-        if (point !== false) {
-            collided = true;
-            Car.v = vScale(vNeg(prev_vel), 0.4); // reverse of the latest valid velocity, but 70% momentum lost
-            if (vMag(Car.v) < 1) {
-                Car.v = vScale(Car.v, 2.5);
+    if (invisibleFrameTimer === 0) {
+        invisible = false;
+    }
+    let usually_collided = false;
+    if (!invisible) {
+        for (let obj of static_objects) {
+            // https://youtu.be/fHOLQJo0FjQ?t=1165 adapted formulas, but using this general method for line segment intersections
+            let point = collisionCheck(Car, obj);
+            if (point !== false) {
+                usually_collided = true;
+            }
+            if (point !== false && invisibleFrameTimer === -1) {
+                collided = true;
+                usually_collided = true;
+                Car.v = vScale(vNeg(prev_vel), 0.3); // reverse of the latest valid velocity, but 70% momentum lost
+                if (vMag(Car.v) < 1) {
+                    Car.v = vScale(Car.v, 2.5);
+                }
             }
         }
+        if (usually_collided === false) {
+            invisibleFrameTimer = -1; // -1 means not active
+        }
     }
-    // left border
-    if ( Car.p.x < canvas.width/4) {
-        Car.v.x = 0;
-        Car.p.x = canvas.width/4;
-    }
-    // right border
-    if (Car.p.x > 3*canvas.width/4) {
-        Car.v.x = 0;
-        Car.p.x = 3*canvas.width/4;
+    for (let obj of powerups) {
+        if (overlapping(Car, obj) && obj.type === "invisible") {
+            invisible = true;
+            invisibleFrameTimer = 60; // 60 frames = 2s
+            powerups = powerups.filter(item => item !== obj);
+        }
     }
 
+    let car_rect = [
+        {
+            x: Car.corner.c1.x,
+            y: Car.corner.c1.y
+        },
+        {
+            x: Car.corner.c2.x,
+            y: Car.corner.c2.y
+        },
+        {
+            x: Car.corner.c3.x,
+            y: Car.corner.c3.y
+        },
+        {
+            x: Car.corner.c4.x,
+            y: Car.corner.c4.y
+        }
+    ];
+
+    // left border
+    for (let corner of car_rect) {
+        if (Car.p.x < 0 + Car.size.y) {
+            Car.v.x = 0;
+            Car.p.x = Car.size.y;
+        }
+        // right border
+        if (Car.p.x + Car.size.y > canvas.width) {
+            Car.v.x = 0;
+            Car.p.x = canvas.width - Car.size.y;
+        }
+    }
     if (collided === false) {
         if (vMag(Car.v) > 1) {
             prev_vel = Car.v; // update latest valid velocity
@@ -272,6 +332,33 @@ function collide() {
     }
 }
 
+
+function overlapping(car, obj) {
+    let car_rect = [
+        {
+            x: car.corner.c1.x,
+            y: car.corner.c1.y
+        },
+        {
+            x: car.corner.c2.x,
+            y: car.corner.c2.y
+        },
+        {
+            x: car.corner.c3.x,
+            y: car.corner.c3.y
+        },
+        {
+            x: car.corner.c4.x,
+            y: car.corner.c4.y
+        }
+    ];
+    // check if any of the car's corners are inside the object
+    for (let corner of car_rect) {
+        if ((corner.x > obj.xPos && corner.x < obj.xPos + obj.size) && (corner.y > obj.yPos && corner.y < obj.yPos + obj.size)) {
+            return true;
+        }
+    }
+}
 // Check for collisions
 function collisionCheck(car, obj) {
     // Checks collision bewteen Car and static object
@@ -357,27 +444,77 @@ function position_drawCar() {
     Car.p = vAdd(Car.p, vScale(Car.v, tperFrame)); // p = p + dt * v, integrating again to go from accel -> velocity -> displacement
     cameraY = Car.p.y;
     carAddCoordInfo();
-    context.fillStyle = "red";
+
+    context.fillStyle = "blue";
     context.translate(Car.p.x, centreLocY); // center canvas on car
     context.rotate(Car.dir); // rotate car
-    context.fillRect(0, 0, Car.size.y, Car.size.x); // draw car. It's from 0,0 so only the shape is rotated and the coordinates are not.
+
+    // original coordinates, we draw an object off screen to cast a shadow/glow on the car
+    let x = 1000 * Math.cos(Car.dir);
+    let y = 1000 * Math.sin(Car.dir);
+    context.shadowColor = "green";
+    context.shadowBlur = 10;
+    context.shadowOffsetX = -x;
+    context.shadowOffsetY = -y;
+    context.fillRect(1000, 0, Car.size.y, Car.size.x);
+
     context.setTransform(1, 0, 0, 1, 0, 0);
+    context.shadowColor = "transparent";
+    context.fillStyle = "red";
+    let style = "racecar";
+    drawCarStyle(style, Car.p.x, centreLocY, Car.dir, Car.size);
+}
+
+function drawCarStyle(style, centreX, centreY, rot, size) {
+    context.translate(centreX, centreY);
+    if (style === "racecar") {
+        // public domain under creative commons licence
+        // https://looneybits.itch.io/2d-race-cars
+        // draw carImage onto canvas at the given rotation
+        let scaleCar = carHeight / size.y;
+        context.rotate(-90 * Math.PI / 180 + rot);
+        context.drawImage(carImage, 0, 0, carWidth, carHeight, -size.x, 0, carWidth / scaleCar, carHeight / scaleCar);
+        context.setTransform(1, 0, 0, 1, 0, 0);
+    }
 }
 
 function draw_objects() {
     for (let obj of static_objects) {
-        context.fillStyle = "green";
+        context.fillStyle = "black";
         context.translate(obj.xPos, obj.yPos - cameraY + centreLocY);
         context.rotate(obj.rot);
+        context.shadowColor = "red";
+        context.shadowBlur = 5;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
         context.fillRect(0, 0, obj.xSize, obj.ySize);
+        context.shadowColor = "transparent";
+        context.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    for (let obj of powerups) {
+        context.fillStyle = "white";
+        context.translate(obj.xPos, obj.yPos - cameraY + centreLocY);
+        context.shadowColor = "white";
+        context.shadowBlur = 5;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+        context.drawImage(invisLogo, 0, 0, obj.size, obj.size)
+        context.shadowColor = "transparent";
         context.setTransform(1, 0, 0, 1, 0, 0);
     }
 }
 
 function enemy_events() {
     context.beginPath();
-    context.moveTo(0, enemy - cameraY + centreLocY);
-    context.lineTo(1000, enemy - cameraY + centreLocY);
+    let enemy_screen_loc = enemy - cameraY + centreLocY;
+    context.shadowColor = "red";
+    context.shadowBlur = 1;
+    context.shadowOffsetX = 0;
+    context.shadowOffsetY = -500;
+    for (let i = 0; i < canvas.width; i += 50) {
+        draw_drone(enemy_screen_loc - 10, i);
+    }
+    context.shadowColor = "transparent";
     //console.log("Enemy, real loc: " + enemy);
     //console.log("CameraY " + cameraY);
     //console.log("Screen loc: " + (enemy - cameraY + centreLocY));
@@ -387,15 +524,58 @@ function enemy_events() {
         stop();
     }
     context.setTransform(1, 0, 0, 1, 0, 0);
-    maxY = enemy + canvas.height/2; // lowest point visible is the point one canvas.height below the enemy (when enemy at top)
-    enemy -= 8;
+    maxY = enemy + canvas.height / 2; // lowest point visible is the point one canvas.height below the enemy (when enemy at top)
+    // enemy and car speeds up as you go further. Car is sped up by increase the engine power
+    if (maxY < 0) {
+        enemy -= 1 * (Math.log(-maxY));
+        Car.engine = 100000 * Math.log(-maxY) / 8;
+        //console.log(1/8 * (Math.log(-maxY)));
+    } else {
+        enemy -= 5;
+    }
+}
+
+function draw_drone(sprite_draw_line, xoffset) {
+    sprite_draw_line += 500
+    let drone_size = 40;
+    let prop_loc = drone_size * 0.23;
+    let prop_size = drone_size / 3;
+    context.drawImage(drone_body, xoffset, sprite_draw_line, drone_size, drone_size);
+    // 4 propellers
+    prop_dir = prop_dir + (20 * Math.PI / 180);
+
+    context.translate(xoffset + prop_loc, sprite_draw_line + prop_loc);
+    context.rotate(prop_dir);
+    context.drawImage(drone_prop, -prop_size / 2, -prop_size / 2, prop_size, prop_size);
+    context.setTransform(1, 0, 0, 1, 0, 0);
+
+    context.translate(xoffset + prop_loc, sprite_draw_line + drone_size - prop_loc);
+    context.rotate(-prop_dir);
+    context.drawImage(drone_prop, -prop_size / 2, -prop_size / 2, prop_size, prop_size);
+    context.setTransform(1, 0, 0, 1, 0, 0);
+
+    context.translate(xoffset + drone_size - prop_loc, sprite_draw_line + prop_loc);
+    context.rotate(-prop_dir);
+    context.drawImage(drone_prop, -prop_size / 2, -prop_size / 2, prop_size, prop_size);
+    context.setTransform(1, 0, 0, 1, 0, 0);
+
+    context.translate(xoffset + drone_size - prop_loc, sprite_draw_line + drone_size - prop_loc);
+    context.rotate(prop_dir);
+    context.drawImage(drone_prop, -prop_size / 2, -prop_size / 2, prop_size, prop_size);
+    context.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 function add_future_objects() {
+    add_obstacles();
+    add_powerups();
+
+}
+
+function add_obstacles() {
     if (Car.p.y < minY + 500) {
         for (let k = 0; k < density; k++) {
             let b = {
-                xPos: randint(canvas.width/4, 3*canvas.width/4),
+                xPos: randint(canvas.width / 4, 3 * canvas.width / 4),
                 yPos: randint(minY - 1000, minY),
                 rot: randint(0, 360) * Math.PI / 180,
                 xSize: randint(10, 60),
@@ -403,6 +583,20 @@ function add_future_objects() {
             };
             b = addCoordInfo(b);
             static_objects.push(b);
+        }
+    }
+}
+
+function add_powerups() {
+    if (Car.p.y < minY + 500) {
+        for (let k = 0; k < density * 0.1; k++) {
+            let b = {
+                xPos: randint(0, canvas.width),
+                yPos: randint(minY - 1000, minY),
+                type: powerupTypes[randint(0, powerupTypes.length - 1)],
+                size: 20 // draw size
+            };
+            powerups.push(b);
         }
         minY = minY - 1000;
     }
@@ -489,14 +683,15 @@ function randint(min, max) {
 
 function stop() {
     // game over screen
-    context.fillStyle = "black";
+    //context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "rgba(0, 0, 0, 0.5)";
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = "white";
     context.font = "30px Arial";
-    context.fillText("Game Over", canvas.width/2 - 100, canvas.height/2);
+    context.fillText("Game Over", canvas.width / 2 - 100, canvas.height / 2);
     context.font = "20px Arial";
-    let scoreString = "Score: " + score;
-    context.fillText(scoreString, canvas.width/2 - 100, canvas.height/2 + 50);
+    let scoreString = "Score: " + Math.round(score);
+    context.fillText(scoreString, canvas.width / 2 - 100, canvas.height / 2 + 50);
     window.cancelAnimationFrame(request_id);
     window.removeEventListener("keydown", activate);
     window.removeEventListener("keyup", deactivate);
@@ -514,5 +709,25 @@ function handle_response() {
         if (xhttp.responseText === "Success") {
             console.log("Score was saved successfully")
         }
+    }
+}
+
+function load_assets(assets, callback) {
+    let num_assets = assets.length;
+    let loaded = function () {
+        num_assets = num_assets - 1;
+        if (num_assets === 0) {
+            callback();
+        }
+    };
+    for (let asset of assets) {
+        let element = asset.var;
+        if (element instanceof HTMLImageElement) {
+            element.addEventListener("load", loaded, false);
+        }
+        else if (element instanceof HTMLAudioElement) {
+            element.addEventListener("canplaythrough", loaded, false);
+        }
+        element.src = asset.url;
     }
 }

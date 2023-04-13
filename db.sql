@@ -24,4 +24,7 @@ CREATE TABLE verify (
 SELECT * FROM scores;
 SELECT * FROM users;
 SELECT * FROM verify;
+
+Liam test123
+test1 
 */

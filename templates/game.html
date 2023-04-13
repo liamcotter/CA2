@@ -1,13 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8"/>
-		<title>Greetings!</title>
-		<link rel="stylesheet" href="{{ url_for('static', filename='style.css')}}">
-		<script src="{{ url_for('static', filename='game.js')}}" type="module"></script>
-	</head>
-	<body>
+
+<head>
+	<meta charset="utf-8" />
+	<title>Octane Odyssey</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='style.css')}}">
+	<script src="{{ url_for('static', filename='game.js')}}" type="module"></script>
+</head>
+
+<body>
+	<main id="game">
+		<p>
+			<a href="{{ url_for('game') }}">Game</a>
+		</p>
+		<p>
+			<a href="{{ url_for('leaderboards') }}">Leaderboard</a>
+		</p>
+		<p>
+			<a href="{{ url_for('logout') }}">Log Out</a>
+		</p>
 		<canvas width="1518" height="660">
 		</canvas>
-	</body>
+	</main>
+</body>
+
 </html>

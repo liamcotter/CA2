@@ -1,7 +1,16 @@
 {% extends "base.html" %}
 
 {% block main_content %}
-<main>
+<main id="leaderboard">
+    <p>
+        <a href="{{ url_for('home') }}">Home</a>
+    </p>
+    <p>
+        <a href="{{ url_for('game') }}">Octane Odyssey</a>
+    </p>
+    <p>
+        <a href="{{ url_for('logout') }}">Log Out</a>
+    </p>
     <script src="{{ url_for('static', filename='leaderboard.js') }}"></script>
     <table>
         <tr>

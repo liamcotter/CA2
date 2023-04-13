@@ -1,3 +1,24 @@
+@viewport {
+    width: device-width;
+}
+
+:root {
+    --font-size: 16px;
+    --h1-size: 5rem;
+    --h2-size: 2rem;
+    --p-size: 1rem;
+    --link-size: 1.3rem;
+    --small-size: 0.7rem;
+    --link-highlight: #19c2ff;
+    --header-padding: 30px;
+    --header-height: 260px;
+    --primary-shade: #000000;
+    --button-shade: #ffb300;
+    --secondary-shade: #ffffff;
+    --dark-shade: #DD9900;
+    --footer-height: 18px;
+}
+
 canvas {
     border: 1px solid black;
 }
@@ -8,4 +29,52 @@ input:invalid {
 
 input:valid {
     border: 1px solid green;
+}
+
+#landing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+/* css to make the #landing p into orange buttons */
+#landing p {
+    background-color: var(--button-shade);
+    border: 1px solid black;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 3em 0;
+    cursor: pointer;
+}
+
+#landing p:nth-of-type(1) {
+    margin-top: 30%;
+}
+
+#landing p:nth-last-of-type(1) {
+    margin-bottom: 30%;
+}
+
+/* a */
+a:link {
+    text-decoration: none;
+    color: inherit;
+}
+
+a:visited {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: none;
+}
+
+a:active {
+    text-decoration: none;
+}
+
+p {
+    display: inline;
 }
