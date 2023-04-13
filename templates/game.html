@@ -9,17 +9,19 @@
 </head>
 
 <body>
-	<main id="game">
+	<header>
 		<p>
-			<a href="{{ url_for('game') }}">Game</a>
+			<a href="{{ url_for('home') }}">Home</a>
 		</p>
 		<p>
-			<a href="{{ url_for('leaderboards') }}">Leaderboard</a>
+			<a href="{{ url_for('game') }}">Octane Odyssey</a>
 		</p>
 		<p>
 			<a href="{{ url_for('logout') }}">Log Out</a>
 		</p>
-		<canvas width="1518" height="660">
+	</header>
+	<main id="game">
+		<canvas>
 		</canvas>
 	</main>
 </body>

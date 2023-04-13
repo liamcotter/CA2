@@ -155,7 +155,13 @@ def no_log_in():
 @app.route("/home")
 @login_required
 def home():
-    return render_template("home.html")
+    db = get_db()
+    leaderboard = []
+    scores = db.execute("""SELECT username, score FROM scores ORDER BY score DESC LIMIT 10;""").fetchall()
+    for rank, data in enumerate(scores):
+        player = Player(rank+1, data["username"], data["score"])
+        leaderboard.append(player)
+    return render_template("home.html", leaderboard=leaderboard)
 
 
 @app.route("/game")
@@ -185,15 +191,6 @@ def score():
     db.commit()
     return "Success"
 
-@app.route("/leaderboard")
-def leaderboards():
-    db = get_db()
-    leaderboard = []
-    scores = db.execute("""SELECT username, score FROM scores ORDER BY score DESC LIMIT 10;""").fetchall()
-    for rank, data in enumerate(scores):
-        player = Player(rank+1, data["username"], data["score"])
-        leaderboard.append(player)
-    return render_template("leaderboard.html", leaderboard=leaderboard)
 
 @app.route("/leaderboard_update")
 def leaderboard_update():
@@ -204,6 +201,7 @@ def leaderboard_update():
         player = Player(rank+1, data["username"], data["score"])
         leaderboard.append(player)
     return render_template("leaderboard_update.html", leaderboard=leaderboard)
+
 # general routes
 
 @app.route("/login", methods=["GET","POST"])

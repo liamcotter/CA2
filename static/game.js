@@ -76,6 +76,8 @@ document.addEventListener("DOMContentLoaded", init, false);
 
 function init() {
     canvas = document.querySelector("canvas");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - 60;
     context = canvas.getContext("2d");
     window.addEventListener("keydown", activate, false);
     window.addEventListener("keyup", deactivate, false);
@@ -450,13 +452,13 @@ function position_drawCar() {
     context.rotate(Car.dir); // rotate car
 
     // original coordinates, we draw an object off screen to cast a shadow/glow on the car
-    let x = 1000 * Math.cos(Car.dir);
-    let y = 1000 * Math.sin(Car.dir);
+    let x = 3000 * Math.cos(Car.dir);
+    let y = 3000 * Math.sin(Car.dir);
     context.shadowColor = "green";
     context.shadowBlur = 10;
     context.shadowOffsetX = -x;
     context.shadowOffsetY = -y;
-    context.fillRect(1000, 0, Car.size.y, Car.size.x);
+    context.fillRect(3000, 0, Car.size.y, Car.size.x);
 
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.shadowColor = "transparent";

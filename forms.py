@@ -6,7 +6,7 @@ class RegistrationForm(FlaskForm):
 	username = StringField("Username: ", validators=[InputRequired(message="Username cannot be blank.")])
 	email = StringField("Email: ", validators=[InputRequired(message="Email cannot be blank.")])
 	password = PasswordField("Password: ", validators=[InputRequired(message="Password cannot be blank.")])
-	password2 = PasswordField("Re-enter password: ", validators=[InputRequired(message="Password cannot be blank."), EqualTo('password', message="Passwords do not match")])
+	password2 = PasswordField("Repeat password: ", validators=[InputRequired(message="Password cannot be blank."), EqualTo('password', message="Passwords do not match")])
 	submit = SubmitField("Submit")
 
 class LoginForm(FlaskForm):

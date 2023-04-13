@@ -2,42 +2,31 @@
 
 {% block main_content %}
 <main id="register">
-	<p>
-		<a href="{{ url_for('login') }}">Log In</a>
-	</p>
-	<p>
-		<a href="{{ url_for('no_log_in') }}">Home</a>
-	</p>
-		<form method="POST" action="">
-			{{ form.hidden_tag() }}
-			{{ form.username.label }}
-			{{ form.username(minlength=4, maxlength=20) }}
-			{% for error in form.username.errors %}
-			<p>{{ error }}</p>
-			{% endfor %}
-			{{ form.email.label }}
-			{{ form.email(minlength=5, maxlength=50, placeholder="Enter email", pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$") }}
-			{% for error in form.email.errors %}
-			<p>{{ error }}</p>
-			{% endfor %}
-			{{ form.password.label }}
-			{{ form.password(minlength=6, maxlength=30) }}
-			{% for error in form.password.errors %}
-			<p>{{ error }}</p>
-			{% endfor %}
-			{{ form.password2.label }}
-			{{ form.password2(minlength=6, maxlength=30) }}
-			{% for error in form.password2.errors %}
-			<p>{{ error }}</p>
-			{% endfor %}
-			{{ form.submit() }}
+	<form method="POST" action="">
+		{{ form.hidden_tag() }}
+		{{ form.username.label }}
+		{{ form.username(minlength=4, maxlength=20, placeholder="Username") }}
+		{% for error in form.username.errors %}
+		<p>{{ error }}</p>
+		{% endfor %}
+		{{ form.email.label }}
+		{{ form.email(minlength=5, maxlength=50, placeholder="wombat@example.com", pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$")
+		}}
+		{% for error in form.email.errors %}
+		<p>{{ error }}</p>
+		{% endfor %}
+		{{ form.password.label }}
+		{{ form.password(minlength=6, maxlength=30, placeholder="Password") }}
+		{% for error in form.password.errors %}
+		<p>{{ error }}</p>
+		{% endfor %}
+		{{ form.password2.label }}
+		{{ form.password2(minlength=6, maxlength=30, placeholder="Repeat password") }}
+		{% for error in form.password2.errors %}
+		<p>{{ error }}</p>
+		{% endfor %}
+		{{ form.submit() }}
 
-		</form>
-	</main>
-	<footer>
-		<small>&copy; Web Dev 2, Octane Odyssey</small>
-	</footer>
-</body>
-
-</html>
+	</form>
+</main>
 {% endblock %}
