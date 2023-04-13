@@ -39,7 +39,7 @@ class Player:
 def verify(email : str, link : str, username : str) -> bool:
     # https://realpython.com/python-send-email/
     try:
-        link = f"http://127.0.0.1:5000/verification/{link}"
+        link = f"http://cs1.ucc.ie/~lyc1/cgi-bin/ca2/run.py/verification/{link}"
         port = 465  # For SSL
         password = pw
         sender_email = "noreply.webdevlyc1@gmail.com"

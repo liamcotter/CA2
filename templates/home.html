@@ -3,6 +3,11 @@
 {% block main_content %}
 <main id="home">
     <script src="{{ url_for('static', filename='leaderboard.js') }}"></script>
+    <p id="info">
+        <i>Octane Odyssey</i> is an endless driving game where you must avoid the obstacles and continue to drive as far as you can.
+        An army of drones are chasing you down and your race ends when you get caught. Use the inivisibility boosts to go through
+        obstacles for a quick advantage! <a href="{{ url_for('game') }}">Play now!</a>
+    </p>
     <table>
         <tr>
             <th>Rank</th>

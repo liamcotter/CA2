@@ -1,11 +1,3 @@
-/* 
- make game
- invisibilty
- background images
- game in background of menu
- line at current PB, overall record.
-*/
-
 let canvas;
 let context;
 let request_id;
@@ -60,6 +52,7 @@ let carImage = new Image();
 let drone_body = new Image();
 let drone_prop = new Image();
 let invisLogo = new Image();
+
 let prop_dir = 0;
 let density = 20; // number of objects per 1000 pixels
 let minY;
@@ -72,6 +65,11 @@ let powerups = [];
 let powerupTypes = ["invisible"];
 let invisibleFrameTimer;
 let invisible;
+let gameStarted = false;
+let pause = false;
+let color = "green";
+let cX;
+let cY;
 document.addEventListener("DOMContentLoaded", init, false);
 
 function init() {
@@ -81,6 +79,7 @@ function init() {
     context = canvas.getContext("2d");
     window.addEventListener("keydown", activate, false);
     window.addEventListener("keyup", deactivate, false);
+    canvas.addEventListener("click", click, false);
     centreLocY = canvas.height / 2;
     enemy = canvas.height;
     minY = -1000;
@@ -97,58 +96,91 @@ function init() {
         static_objects.push(b);
     }
     load_assets([
-        { "var": carImage, "url": "static/car4(2).png" },
+        { "var": carImage, "url": "static/car.png" },
         { "var": drone_body, "url": "static/drone_body.png" },
         { "var": drone_prop, "url": "static/propellor.png" },
-        { "var": invisLogo, "url": "static/invis.png" },
+        { "var": invisLogo, "url": "static/invis.png" }
     ], draw);
 }
 
 function draw() {
-    request_id = window.requestAnimationFrame(draw);
-    let now = Date.now();
-    let elapsed = now - then;
-    if (elapsed <= fpsInterval) {
-        return;
-    }
-    then = now - (elapsed % fpsInterval);
+    if (!gameStarted) {
+        request_id = window.requestAnimationFrame(draw);
+        context.fillStyle = "rgba(0, 0, 0, 0.5)";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "white";
+        context.font = "20px Calibri";
+        context.fillText("Press space to start", canvas.width / 2, canvas.height / 2);
+        cX = canvas.width/2 - 100;
+        cY = canvas.height/2;
+        let radius = 80;
+        for (let angle = 0; angle < 360; angle++) {
+            let hue = angle;
+            let gradient = context.createRadialGradient(cX, cY, 0, cX, cY, radius);
+            gradient.addColorStop(0, 'white');
+            gradient.addColorStop(1, `hsl(${hue}, 100%, 50%)`);
+            context.fillStyle = gradient;
+            context.beginPath();
+            context.moveTo(cX, cY);
+            context.arc(cX, cY, radius, angle * Math.PI / 180, (angle + 1) * Math.PI / 180);
+            context.closePath();
+            context.fill();
+        }
+        carAddCoordInfo()
+        context.translate(cX + 150, cY - 50);
+        context.shadowColor = color;
+        context.shadowBlur = 10;
+        context.shadowOffsetX = -1000;
+        context.shadowOffsetY = 0;
+        context.fillRect(1000, 0, Car.size.y, Car.size.x);
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.shadowColor = "transparent";
+        context.fillStyle = "red";
+        let scaleCar = carHeight / Car.size.y;
+        context.translate(cX + 150, cY - 50 + Car.size.x);
+        context.rotate(-90 * Math.PI / 180);
+        context.drawImage(carImage, 0, 0, carWidth, carHeight, 0, 0, carWidth / scaleCar, carHeight / scaleCar);
+        context.setTransform(1, 0, 0, 1, 0, 0);
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = "black";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    turn();
-    drive();
-    collide();
-    position_drawCar();
-    draw_objects();
-    enemy_events();
-    add_future_objects();
-    delete_objects();
-    score = Math.max(score, -Car.p.y);
-    if (invisibleFrameTimer > 0) {
-        invisibleFrameTimer--;
+    } else if (pause) {
+        request_id = window.requestAnimationFrame(draw);
+        context.fillStyle = "rgba(0, 0, 0, 0.5)";
+        //context.fillRect(0.4 * canvas.width, 0.4 *  canvas.height, canvas.width/5, canvas.height/5);
+        context.fillStyle = "white";
+        context.font = "20px Calibri";
+        context.textAlign = "center";
+        context.fillText("Paused", canvas.width / 2, canvas.height / 2);
+        context.fillText("Press escape to resume", canvas.width / 2, canvas.height / 2 + 50);
+        context.textAlign = "left";
+    } else {
+        request_id = window.requestAnimationFrame(draw);
+        let now = Date.now();
+        let elapsed = now - then;
+        if (elapsed <= fpsInterval) {
+            return;
+        }
+        then = now - (elapsed % fpsInterval);
+
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "black";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        turn();
+        drive();
+        collide();
+        position_drawCar();
+        draw_objects();
+        enemy_events();
+        add_future_objects();
+        delete_objects();
+        score = Math.max(score, -Car.p.y);
+        if (invisibleFrameTimer > 0) {
+            invisibleFrameTimer--;
+        }
+        context.fillStyle = "white";
+        context.fillText("Score: " + Math.round(score), 10, 30);
     }
-    context.fillStyle = "white";
-    context.fillText("Score: " + Math.round(score), 10, 30);
-}
-/* text
-let angle = Math.atan2(Car.v.y, Car.v.x);
-let backwards = "";
-if (Math.abs((angle + Math.PI) - (Car.dir + (999999999999 * Math.PI)) % (2 * Math.PI)) > 0.1) {
-    backwards = "-";
 }
 
-context.fillText(backwards + vMag(Car.v) + " m/s", 10, 30);
-context.fillText(Car.dir, 10, 150);
-context.fillText((Car.dir + (9999 * Math.PI)) % (2 * Math.PI) + " rad", 10, 50);
-context.fillText(angle + Math.PI + " rad", 10, 70);
-context.fillText(Car.p.x + " x", 10, 90);
-context.fillText(Car.p.y + " y", 10, 110);
-//context.fillText(Car.rr.x + " x " + Car.rr.y + " y rr", 10, 130);
-//context.fillText(Car.drag.x +  " x " + Car.drag.y + " y drag", 10, 150);
-//context.fillText(Car.t.x + " x " + Car.t.y + " y t", 10, 170);
-context.setTransform(1, 0, 0, 1, 0, 0);
-*/
 
 // add coords to object from the "drawing coords". x, y, xSize, ySize, rotation -> 4 corners + centre
 function addCoordInfo(b) {
@@ -454,7 +486,7 @@ function position_drawCar() {
     // original coordinates, we draw an object off screen to cast a shadow/glow on the car
     let x = 3000 * Math.cos(Car.dir);
     let y = 3000 * Math.sin(Car.dir);
-    context.shadowColor = "green";
+    context.shadowColor = color;
     context.shadowBlur = 10;
     context.shadowOffsetX = -x;
     context.shadowOffsetY = -y;
@@ -463,21 +495,18 @@ function position_drawCar() {
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.shadowColor = "transparent";
     context.fillStyle = "red";
-    let style = "racecar";
-    drawCarStyle(style, Car.p.x, centreLocY, Car.dir, Car.size);
+    drawCarStyle(Car.p.x, centreLocY, Car.dir, Car.size);
 }
 
-function drawCarStyle(style, centreX, centreY, rot, size) {
+function drawCarStyle(centreX, centreY, rot, size) {
     context.translate(centreX, centreY);
-    if (style === "racecar") {
-        // public domain under creative commons licence
-        // https://looneybits.itch.io/2d-race-cars
-        // draw carImage onto canvas at the given rotation
-        let scaleCar = carHeight / size.y;
-        context.rotate(-90 * Math.PI / 180 + rot);
-        context.drawImage(carImage, 0, 0, carWidth, carHeight, -size.x, 0, carWidth / scaleCar, carHeight / scaleCar);
-        context.setTransform(1, 0, 0, 1, 0, 0);
-    }
+    // public domain under creative commons licence
+    // https://looneybits.itch.io/2d-race-cars
+    // draw carImage onto canvas at the given rotation
+    let scaleCar = carHeight / size.y;
+    context.rotate(-90 * Math.PI / 180 + rot);
+    context.drawImage(carImage, 0, 0, carWidth, carHeight, -size.x, 0, carWidth / scaleCar, carHeight / scaleCar);
+    context.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 function draw_objects() {
@@ -606,6 +635,7 @@ function add_powerups() {
 
 function delete_objects() {
     static_objects = static_objects.filter(item => item.yPos < maxY);
+    powerups = powerups.filter(item => item.yPos < maxY);
 }
 
 // vector math functions, for cleaner code
@@ -641,17 +671,6 @@ function vScale(v, k) {
     };
 }
 
-function vDot(v1, v2) {
-    return v1.x * v2.x + v1.y * v2.y
-}
-
-function vCross(v1, v2) {
-    return {
-        x: v1.x * v2.y - v1.y * v2.x,
-        y: v1.y * v2.x - v1.x * v2.y
-    };
-}
-
 // buttons
 function activate(event) {
     let key = event.key;
@@ -663,6 +682,11 @@ function activate(event) {
         moveFor = true;
     } else if (key === "ArrowDown") {
         moveBack = true;
+    } else if (key === "Escape") {
+        pause = !pause;
+    } else if (key === " ") {
+        gameStarted = true;
+        canvas.removeEventListener("click", click);
     }
 }
 
@@ -677,6 +701,31 @@ function deactivate(event) {
     } else if (key === "ArrowDown") {
         moveBack = false;
     }
+}
+
+function click(event) {
+    // modified from https://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // convert x, y to polar coordinates
+    const dx = x - cX;
+    const dy = y - cY;
+    const angle = Math.atan2(dy, dx);
+    const radius = Math.sqrt(dx * dx + dy * dy);
+
+    let hue = angle * 180 / Math.PI;
+    if (hue < 0) {
+        hue += 360;
+    }
+    let saturation;
+    if (radius > 80)  {
+        saturation = 1;
+    } else {
+        saturation = radius / 80;
+    }
+    color = `hsl(${hue}, ${saturation * 100}%, 50%)`;
 }
 
 function randint(min, max) {

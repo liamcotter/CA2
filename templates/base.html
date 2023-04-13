@@ -5,6 +5,8 @@
     <meta charset="utf-8" />
     <title>Octane Odyssey</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='canvas_bg.css') }}" />
+    <script src="{{ url_for('static', filename='canvas_bg.js')}}" type="module"></script>
     <link rel="icon" href="{{ url_for('static',filename='favicon.ico') }}" />
 </head>
 
@@ -32,8 +34,12 @@
         </p>
         {% endif %}
     </header>
-        {% block main_content %}
-        {% endblock %}
+    <div>
+        <canvas>
+        </canvas>
+    </div>
+    {% block main_content %}
+    {% endblock %}
     <footer>
         <small>&copy; Web Dev 2, Octane Odyssey</small>
     </footer>
