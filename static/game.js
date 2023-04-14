@@ -604,9 +604,9 @@ function add_future_objects() {
 
 function add_obstacles() {
     if (Car.p.y < minY + 500) {
-        for (let k = 0; k < density; k++) {
+        for (let k = 0; k < density*2; k++) {
             let b = {
-                xPos: randint(canvas.width / 4, 3 * canvas.width / 4),
+                xPos: randint(0, canvas.width),
                 yPos: randint(minY - 1000, minY),
                 rot: randint(0, 360) * Math.PI / 180,
                 xSize: randint(10, 60),
@@ -750,7 +750,7 @@ function stop() {
     data.append("score", score);
     xhttp = new XMLHttpRequest();
     xhttp.addEventListener("readystatechange", handle_response, false);
-    xhttp.open("POST", "/score", true);
+    xhttp.open("POST", "/~lyc1/cgi-bin/ca2/run.py/score", true);
     xhttp.send(data);
 }
 
