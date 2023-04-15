@@ -202,6 +202,11 @@ def leaderboard_update():
         leaderboard.append(player)
     return render_template("leaderboard_update.html", leaderboard=leaderboard)
 
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
 # general routes
 
 @app.route("/login", methods=["GET","POST"])

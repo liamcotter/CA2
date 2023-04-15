@@ -10,6 +10,21 @@ canvas {
     width: 100%;
 }
 
+footer {
+    z-index: 1;
+    color: white;
+    bottom: 0px;
+    position: fixed;
+}
+
+a {
+    color: orange;
+}
+
+a:hover {
+    transform: scale(1.1);
+}
+
 /* pointer-events: none; for all but canvas element */
 :not(canvas):not(a):not(input) {
     pointer-events: none;

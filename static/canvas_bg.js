@@ -58,7 +58,6 @@ function draw() {
     drone.v = vScale(drone.v, 1/100);
     drone.v = vAdd(drone.v, dir);
     drone.p = vAdd(drone.p, vScale(drone.v, tperFrame));
-    console.log(mouse.x, mouse.y);
 
 
     let s = 500;

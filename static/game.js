@@ -117,6 +117,7 @@ function draw() {
         context.fillStyle = "white";
         context.font = "20px Calibri";
         context.fillText("Press space to start", canvas.width / 2, canvas.height / 2);
+        context.fillText("Use 🠐 🠒 🠑 🠓 to drive", canvas.width / 2, canvas.height / 2 + 30);
         cX = canvas.width/2 - 100;
         cY = canvas.height/2;
         let radius = 80;
