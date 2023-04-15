@@ -11,10 +11,10 @@ canvas {
 }
 
 /* pointer-events: none; for all but canvas element */
-:not(canvas):not(a) {
+:not(canvas):not(a):not(input) {
     pointer-events: none;
 }
 
-canvas, a {
+canvas, a, input {
     pointer-events: auto;
 }

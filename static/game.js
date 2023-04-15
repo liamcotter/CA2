@@ -64,10 +64,16 @@ let static_objects = [];
 let powerups = [];
 let powerupTypes = ["invisible"];
 let invisibleFrameTimer;
+let invis_animation = 0;
 let invisible;
 let gameStarted = false;
 let pause = false;
-let color = "green";
+let colour = {
+    hue : 120,
+    sat : 1,
+    lum : 0.5,
+    colour : `hsl(120, 100%, 50%)`
+};
 let cX;
 let cY;
 document.addEventListener("DOMContentLoaded", init, false);
@@ -98,7 +104,7 @@ function init() {
     load_assets([
         { "var": carImage, "url": "static/car.png" },
         { "var": drone_body, "url": "static/drone_body.png" },
-        { "var": drone_prop, "url": "static/propellor.png" },
+        { "var": drone_prop, "url": "static/propeller.png" },
         { "var": invisLogo, "url": "static/invis.png" }
     ], draw);
 }
@@ -128,7 +134,7 @@ function draw() {
         }
         carAddCoordInfo()
         context.translate(cX + 150, cY - 50);
-        context.shadowColor = color;
+        context.shadowColor = colour.colour;
         context.shadowBlur = 10;
         context.shadowOffsetX = -1000;
         context.shadowOffsetY = 0;
@@ -141,7 +147,7 @@ function draw() {
         context.rotate(-90 * Math.PI / 180);
         context.drawImage(carImage, 0, 0, carWidth, carHeight, 0, 0, carWidth / scaleCar, carHeight / scaleCar);
         context.setTransform(1, 0, 0, 1, 0, 0);
-
+        console.log("started");
     } else if (pause) {
         request_id = window.requestAnimationFrame(draw);
         context.fillStyle = "rgba(0, 0, 0, 0.5)";
@@ -175,6 +181,9 @@ function draw() {
         score = Math.max(score, -Car.p.y);
         if (invisibleFrameTimer > 0) {
             invisibleFrameTimer--;
+            invis_animation = invis_animation - 20/fps;
+            colour.sat = (Math.cos((3*invis_animation)/Math.PI)+1)/2;
+            colour.colour = `hsl(${colour.hue}, ${colour.sat*100}%, ${colour.lum*100}%)`;
         }
         context.fillStyle = "white";
         context.fillText("Score: " + Math.round(score), 10, 30);
@@ -324,6 +333,7 @@ function collide() {
         if (overlapping(Car, obj) && obj.type === "invisible") {
             invisible = true;
             invisibleFrameTimer = 60; // 60 frames = 2s
+            invis_animation = 20;
             powerups = powerups.filter(item => item !== obj);
         }
     }
@@ -486,7 +496,7 @@ function position_drawCar() {
     // original coordinates, we draw an object off screen to cast a shadow/glow on the car
     let x = 3000 * Math.cos(Car.dir);
     let y = 3000 * Math.sin(Car.dir);
-    context.shadowColor = color;
+    context.shadowColor = colour.colour;
     context.shadowBlur = 10;
     context.shadowOffsetX = -x;
     context.shadowOffsetY = -y;
@@ -725,7 +735,10 @@ function click(event) {
     } else {
         saturation = radius / 80;
     }
-    color = `hsl(${hue}, ${saturation * 100}%, 50%)`;
+    colour.hue = hue;
+    colour.sat = saturation;
+    colour.lum = 0.5;
+    colour.colour = `hsl(${hue}, ${saturation * 100}%, 50%)`;
 }
 
 function randint(min, max) {
