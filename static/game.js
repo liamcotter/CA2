@@ -1,7 +1,24 @@
+/* 
+PLANNING
+--------
+- Database
+- Obstacles
+    - Add dynamic and static enemies
+    - Improve chasing drone
+- Powerups
+    - Add more powerups
+    - Add animations for powerups
+- Menu
+    - Add better menu
+*/
+
 let canvas;
 let context;
 let request_id;
-let xhttp;
+let xhttp = new XMLHttpRequest();
+xhttp.addEventListener("readystatechange", handle_response, false);
+xhttp.open("GET", "/analytics_game", true);
+xhttp.send();
 
 let fps = 30;
 let fpsInterval = 1000 / fps; // the denominator is frames-per-second, milliseconds
@@ -74,8 +91,11 @@ let colour = {
     lum : 0.5,
     colour : `hsl(120, 100%, 50%)`
 };
-let cX;
-let cY;
+let cX; // centre of colour wheel
+let cY; // centre of colour wheel
+
+let pb = 0;
+
 document.addEventListener("DOMContentLoaded", init, false);
 
 function init() {
@@ -86,6 +106,8 @@ function init() {
     window.addEventListener("keydown", activate, false);
     window.addEventListener("keyup", deactivate, false);
     canvas.addEventListener("click", click, false);
+    xhttp.open("GET", "/get_pb", true);
+    xhttp.send();
     centreLocY = canvas.height / 2;
     enemy = canvas.height;
     minY = -1000;
@@ -171,6 +193,7 @@ function draw() {
         context.clearRect(0, 0, canvas.width, canvas.height);
         context.fillStyle = "black";
         context.fillRect(0, 0, canvas.width, canvas.height);
+        draw_pb_bar();
         turn();
         drive();
         collide();
@@ -578,7 +601,7 @@ function enemy_events() {
 }
 
 function draw_drone(sprite_draw_line, xoffset) {
-    sprite_draw_line += 500
+    sprite_draw_line += 500;
     let drone_size = 40;
     let prop_loc = drone_size * 0.23;
     let prop_size = drone_size / 3;
@@ -649,6 +672,68 @@ function delete_objects() {
     powerups = powerups.filter(item => item.yPos < maxY);
 }
 
+function draw_pb_bar() {
+    // pb, score, 0
+    context.strokeStyle = "white";
+    context.lineWidth = 2;
+    context.moveTo(canvas.width - 50, canvas.height * 3/4);
+    context.lineTo(canvas.width - 50, canvas.height / 4);
+    context.stroke();
+    if (score > pb) {
+        // car
+        context.translate(canvas.width - 50 + (0.5*Car.size.x), canvas.height / 4);
+        context.shadowColor = "yellow";
+        context.shadowBlur = 10;
+        context.shadowOffsetX = -1000;
+        context.shadowOffsetY = 0;
+        context.fillRect(1000, 0, Car.size.x, -Car.size.y);
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.shadowColor = "transparent";
+
+        context.translate(canvas.width - 50 + (0.5*Car.size.x), canvas.height / 4);
+        let scaleCar = carHeight / Car.size.y;
+        context.rotate(180 * Math.PI / 180);
+        context.drawImage(carImage, 0, 0, carWidth, carHeight, -Car.size.x, 0, carWidth / scaleCar, carHeight / scaleCar);
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        // PB
+        let mid_bar = (canvas.height * 3/4) - ((pb / score) * canvas.height / 2);
+        context.moveTo(canvas.width - 55, mid_bar);
+        context.lineWidth = 2;
+        context.strokeStyle = "yellow";
+        context.lineTo(canvas.width - 45, mid_bar);
+        context.stroke();
+        context.font = "15px Calibri";
+        context.lineWidth = 1;
+        context.strokeText("PB", canvas.width - 75, mid_bar + 5);
+    } else {
+        let car_progress = (canvas.height * 3/4) - ((score / pb) * canvas.height / 2);
+        // car
+        context.translate(canvas.width - 50 + (0.5*Car.size.x), car_progress);
+        context.shadowColor = "yellow";
+        context.shadowBlur = 10;
+        context.shadowOffsetX = -1000;
+        context.shadowOffsetY = 0;
+        context.fillRect(1000, 0, Car.size.x, -Car.size.y);
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.shadowColor = "transparent";
+
+        context.translate(canvas.width - 50 + (0.5*Car.size.x), car_progress);
+        let scaleCar = carHeight / Car.size.y;
+        context.rotate(180 * Math.PI / 180);
+        context.drawImage(carImage, 0, 0, carWidth, carHeight, -Car.size.x, 0, carWidth / scaleCar, carHeight / scaleCar);
+        context.setTransform(1, 0, 0, 1, 0, 0);
+         // PB
+        context.moveTo(canvas.width - 55, canvas.height / 4);
+        context.lineWidth = 2;
+        context.strokeStyle = "yellow";
+        context.lineTo(canvas.width - 45, canvas.height / 4);
+        context.stroke();
+        context.font = "15px Calibri";
+        context.lineWidth = 1;
+        context.strokeText("PB", canvas.width - 75, canvas.height / 4 + 5);
+    }
+
+}
 // vector math functions, for cleaner code
 function vAdd(v1, v2) {
     return {
@@ -762,17 +847,20 @@ function stop() {
     window.removeEventListener("keyup", deactivate);
     let data = new FormData();
     data.append("score", score);
-    xhttp = new XMLHttpRequest();
-    xhttp.addEventListener("readystatechange", handle_response, false);
-    xhttp.open("POST", "/~lyc1/cgi-bin/ca2/run.py/score", true);
+    xhttp.open("POST", "/score", true);
     xhttp.send(data);
 }
 
 
 function handle_response() {
     if (xhttp.readyState === 4 && xhttp.status === 200) {
-        if (xhttp.responseText === "Success") {
+        let jsonResponse = JSON.parse(xhttp.responseText);
+        if (jsonResponse.type === "submit" && jsonResponse.message === "success") {
             console.log("Score was saved successfully")
+        } else if (jsonResponse.type === "submit" && jsonResponse.message === "fail") {
+            console.log("Score was not saved successfully")
+        } else if (jsonResponse.type === "pb") {
+            pb = jsonResponse.score;
         }
     }
 }

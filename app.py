@@ -183,14 +183,36 @@ def verification(token):
 
 @app.route("/score", methods=["GET","POST"])
 def score():
-    score = float(request.form.get("score")) # safer
-    score = int(round(score, 0))
-    username = g.user
-    db = get_db()
-    db.execute("""INSERT INTO scores (username, score) VALUES (?, ?);""", (username, score))
-    db.commit()
-    return "Success"
+    try:
+        score = float(request.form.get("score")) # safer
+        score = int(round(score, 0))
+        username = g.user
+        db = get_db()
+        db.execute("""INSERT INTO scores (username, score) VALUES (?, ?);""", (username, score))
+        db.commit()
+        d = {}
+        d["type"] = "submit"
+        d["message"] = "Success"
+        return d
+    except:
+        d = {}
+        d["type"] = "submit"
+        d["message"] = "fail"
+        return d
 
+@app.route("/get_pb")
+def get_pb():
+    db = get_db()
+    pb = db.execute("""SELECT score FROM scores WHERE username = ? ORDER BY score DESC LIMIT 1;""", (g.user,)).fetchone()
+    if pb is None:
+        pb = 0
+    else:
+        pb = pb["score"]
+    d = {}
+    d["type"] = "pb"
+    d["message"] = ""
+    d["score"] = pb
+    return d
 
 @app.route("/leaderboard_update")
 def leaderboard_update():
@@ -206,6 +228,26 @@ def leaderboard_update():
 @app.route("/privacy")
 def privacy():
     return render_template("privacy.html")
+
+@app.route("/analytics_game")
+def analytics_game():
+    db = get_db()
+    visits = db.execute("""SELECT visit FROM visits WHERE page = "game";""").fetchone()
+    visits = visits["visit"]
+    db.execute("""UPDATE visits SET visit = ? WHERE page = "game";""", (visits+1,))
+    db.commit()
+    d = { "type": "", "message": "" }
+    return d
+
+@app.route("/analytics")
+def analytics():
+    db = get_db()
+    visits = db.execute("""SELECT visit FROM visits WHERE page = "landing_page";""").fetchone()
+    visits = visits["visit"]
+    db.execute("""UPDATE visits SET visit = ? WHERE page = "landing_page";""", (visits+1,))
+    db.commit()
+    d = { "type": "", "message": "" }
+    return d
 
 # general routes
 

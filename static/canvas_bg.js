@@ -1,6 +1,11 @@
 let canvas;
 let context;
 let request_id;
+if (window.location.pathname == "/") {
+    let xhttp = new XMLHttpRequest();
+    xhttp.open("GET", "/analytics", true);
+    xhttp.send();
+}
 
 let fps = 30;
 let fpsInterval = 1000 / fps; // the denominator is frames-per-second, milliseconds
