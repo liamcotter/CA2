@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Octane Odyssey</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link rel="icon" href="{{ url_for('static',filename='favicon.ico') }}" />
+</head>
+
+<body style="background-color: red;">
+    <table>
+        <tr>
+            <th>Page</th>
+            <th>Views</th>
+        {% for data in dataset %}
+        <tr>
+            <td>{{data.desc}}</td>
+            <td>{{data.value}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <footer>
+        <small>&copy; Octane Odyssey. <a href="{{ url_for('privacy')}}">Privacy Policy</a></small>
+    </footer>
+</body>
+
+</html>

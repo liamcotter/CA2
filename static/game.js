@@ -10,6 +10,8 @@ PLANNING
     - Add animations for powerups
 - Menu
     - Add better menu
+- Security
+    - Encrypt scores being transmitted
 */
 
 let canvas;

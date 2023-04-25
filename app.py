@@ -249,6 +249,20 @@ def analytics():
     d = { "type": "", "message": "" }
     return d
 
+@app.route("/disp_analytics")
+def disp_analytics():
+    class Disp:
+        def __init__(self, desc, value):
+            self.desc = desc
+            self.value = value 
+    datas = []
+    db = get_db()
+    visits = db.execute("""SELECT * FROM visits;""").fetchall()
+    for stat in visits:
+        d = Disp(stat["page"], stat["visit"])
+        datas.append(d)
+    return render_template("admin_stats.html", dataset=datas)
+
 # general routes
 
 @app.route("/login", methods=["GET","POST"])
