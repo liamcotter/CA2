@@ -1,12 +1,3 @@
-"""
-Add in organised login/register/landing page structure
-add leaderboard DB
-set up DB
-
-app pw must not show
-"""
-
-
 from flask import Flask, render_template, url_for, redirect, session, g, request, abort
 from flask_session import Session
 from database import get_db, close_db
@@ -17,12 +8,12 @@ import re
 import smtplib, ssl
 from random import choice
 from string import ascii_letters, digits    
-from pw import pw
+from temp_var import pw, send_email, email_logo, verify_link_start, secret_key
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "Octane Odyssey".encode('utf8')
+app.config["SECRET_KEY"] = secret_key
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_PERMANENT"] = False
 app.teardown_appcontext(close_db)
@@ -39,10 +30,10 @@ class Player:
 def verify(email : str, link : str, username : str) -> bool:
     # https://realpython.com/python-send-email/
     try:
-        link = f"http://cs1.ucc.ie/~lyc1/cgi-bin/ca1/ca2_continuation/run.py/verification/{link}"
+        link = f"{verify_link_start}{link}"
         port = 465  # For SSL
         password = pw
-        sender_email = "noreply.webdevlyc1@gmail.com"
+        sender_email = send_email
         receiver_email = email
         message = MIMEMultipart("alternative")
         message["Subject"] = "Email Verification"
@@ -98,7 +89,7 @@ def verify(email : str, link : str, username : str) -> bool:
         <body>
             <div>
                 <figure>
-                    <img src="https://cs1.ucc.ie/~lyc1/cgi-bin/ca2/static/email_logo.png" height="300" alt="Octane Odyssey logo">
+                    <img src="{email_logo}" height="300" alt="Octane Odyssey logo">
                 </figure>
                 <p>Hello {username},</p>
                 <p>Please follow this link to verify your email address:</p>

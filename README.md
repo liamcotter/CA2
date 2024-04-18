@@ -1,1 +1,3 @@
 This project was made for a CS1116 assignment. It consists of a simple 2D car game with semi-realistic physics for the movement of the user-controlled entity. It is called Octane Odyssey. The project features a login/account system, email verification, a leaderboard and the game itself. The game is coded in Javascript and the surrounding features (serverside) are written in Python.
+
+Some parts have been hardcoded as university server specific and redacted to be defined in hidden variables. Ideally these should be environment variables if I were to continue work on this project.
